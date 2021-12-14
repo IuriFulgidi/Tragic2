@@ -5,8 +5,11 @@ Aggiungere a questo README eventuali estensioni al progetto assegnato, e scelte 
 
 
 
-Nome:
+Nome: Iuri
 
-Cognome:
+Cognome: Fulgidi
 
-Matricola:
+Matricola: 340803
+
+Scelte e implementazioni aggiuntive al progetto;
+- Per il mazzo di carte è stato imposto un range da 20 a 80 carte per evitare partite troppo    lunghe o troppo corte.

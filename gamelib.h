@@ -1,5 +1,22 @@
-// Dichiarazione delle funzioni da chiamare in main.c
-// Definizione dei tipi necessari alla libreria
+void Imposta_gioco();
+void Combatti();
+void Termina_gioco();
 
+enum classe_mago {tenebre, vita, luce};
 
+enum tipo_carta {creatura, rimuovi_creatura, infliggi_danno, guarisci_danno};
 
+typedef struct Carta{
+  enum tipo_carta tipo;
+  int punti_vita;
+  struct Carta* next;
+}carta;
+
+typedef struct Mago{
+  char nome[256];
+  int PV;
+  enum classe_mago classe;
+  carta* mazzo;
+  carta* mano;
+  carta* campo;
+}mago;
