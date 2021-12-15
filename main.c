@@ -1,14 +1,14 @@
 #include "gamelib.h"
 #include <stdio.h>
-
-// Questo file continene solo la definizione della funzione main
-// con il menu principale 1-2-3
+#include <stdlib.h>
 
 int main( ) {
   //si dichiarano le varibili
   int flag=1;
   char scelta[256];
   int imp=0;
+
+  system("clear");
   printf("Benvenuti in questa piana desolata\n");
   //menu di scelta
   do{
@@ -30,7 +30,7 @@ int main( ) {
         if(imp)
           Combatti();
         else
-          printf("Il gioco deve essere impostato!\n");
+          printf("Il gioco deve prima essere impostato!\n");
         break;
       case 51:
         Termina_gioco();

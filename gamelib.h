@@ -13,10 +13,11 @@ typedef struct Carta{
 }carta;
 
 typedef struct Mago{
-  char nome[256];
-  int PV;
+  char nome[64];
+  int PV; //unsigned short
   enum classe_mago classe;
-  carta* mazzo;
+  carta* inzio_mazzo;//carta in fondo - pfirst
+  carta* fine_mazzo; //carta da pescare - plast
   carta* mano;
   carta* campo;
 }mago;
