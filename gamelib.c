@@ -5,43 +5,41 @@
 #include <string.h>
 #include <time.h>
 
-
-//variabili
+//variabili GLOBALI
 static mago mago1;
 static mago mago2;
 static int ctrm=0;//contatore maghi
-static carta* prima1=NULL;//prima e ultima carta dei mazzi
+/*static carta* prima1=NULL;//prima e ultima carta dei mazzi
 static carta* ultima1=NULL;
 static carta* prima2=NULL;
-static carta* ultima2=NULL;
+static carta* ultima2=NULL;*/
 
 //dichiarazione funzioni
-static carta* Popola_mano(carta*);
-static void Stampa_mano(carta*);
-static void Stampa_carta(carta);
-static void Impila_mazzo(carta*, carta*);
-static void Stampa_mazzo(carta*, int);
+static void Stampa_mago(mago);
+static void Popola_mano(mago*);
+static void Stampa_mano(mago*);
+static void Stampa_carta(carta*);
+static void Impila_mazzo(mago*, int);
+static void Stampa_mazzo(mago);
 static void Crea_mago(mago*);
+static carta* Crea_carta(void);
+static void Crea_campo(mago*);
+static void Stampa_campo(mago*);
 
 void Imposta_gioco(){
   system("clear");
 
-  //variabili
-  time_t t; //random
-  srand((unsigned) time(&t));
-  int flag=0;
-  int n; //# carte del mazzo
+  //variabili random
+  time_t t;
+  srand((unsigned)time(&t));
 
-  //creazione primo mago
+  //creazione dei maghi
   Crea_mago(&mago1);
-  //creazione secondo mago
   Crea_mago(&mago2);
 
-  //impostazione punnti vita
-  mago1.PV=20;
-  mago2.PV=20;
-
-  //controllo numero di carte nel mazzo
+  //numero di carte nel mazzo
+  int n;
+  int flag=0;
   do {
     printf("inserire il numero di carte dei mazzi, compreso tra 0 e 80\n");
     scanf("%d",&n);
@@ -52,53 +50,30 @@ void Imposta_gioco(){
   } while(flag);
 
   //stampa informazioni apperna messe
-  printf("Mago1\n");
-  printf("nome: %s\n", mago1.nome );
-  printf("classe: %d\n", mago1.classe );
-  printf("punti vita: %d\n", mago1.PV );
-  printf("\n");
-  printf("Mago2\n");
-  printf("nome: %s\n", mago2.nome );
-  printf("classe: %d\n", mago2.classe );
-  printf("punti vita: %d\n", mago2.PV );
-  printf("\n");
-  printf("ogni mazzo ha %d carte\n", n);
+  Stampa_mago(mago1);
+  Stampa_mago(mago2);
 
+  //creazione delle mani
+  Popola_mano(&mago1);
+  Popola_mano(&mago2);
 
-  //creazione della mano
-  carta *mano1;
-  mano1 = (carta*) malloc(6*sizeof(carta));
-  mano1 = Popola_mano(mano1);
-  mago1.mano=mano1;
-  Stampa_mano(mano1);
-
-  carta *mano2;
-  mano2 = (carta*) malloc(6*sizeof(carta));
-  mano2 = Popola_mano(mano2);
-  mago2.mano=mano2;
-  Stampa_mano(mano2);
+  Stampa_mano(&mago1);
+  Stampa_mano(&mago2);
 
   //creazione mazzi
-  //primo mago
-  carta *pNew = (carta*) malloc(sizeof(carta));
-  pNew->tipo=rand()%4;
-  pNew->punti_vita= (rand()%6)+1;
-  pNew->next= NULL;
-  prima1=pNew;
-  for (int i = 0; i < n; i++) {
-    Impila_mazzo(prima1, ultima1);
-  }
-  mago1.inzio_mazzo=prima1;
-  mago1.fine_mazzo=ultima1;
-  Stampa_mazzo(prima1, n);
+  Impila_mazzo(&mago1, n);
+  Impila_mazzo(&mago2, n);
 
-  //secondo mago
-  for (int i = 0; i < n; i++) {
-    Impila_mazzo(prima2, ultima2);
-  }
-  mago2.fine_mazzo=prima2;
-  mago2.inzio_mazzo=ultima2;
-  Stampa_mazzo(mago2.inzio_mazzo, n);
+  Stampa_mazzo(mago1);
+  Stampa_mazzo(mago2);
+
+  Crea_campo(&mago1);
+  Crea_campo(&mago2);
+
+  Stampa_campo(&mago1);
+  Stampa_campo(&mago2);
+
+  printf("Gioco impostato!\n");
 
 }
 
@@ -143,44 +118,96 @@ static void Crea_mago(mago* m){
       flag=1;
   } while(flag);
 
+  m->PV=20;
+
   ctrm++;
   return;
 }
 
-static carta* Popola_mano(carta *c){
-  for (int i = 0; i < 5; i++) {
-    c[i].tipo=rand()%4;
-    c[i].punti_vita= (rand()%6)+1;
-    c[i].next=NULL;
+static void Stampa_mago(mago m){
+  printf("mago %s\n", m.nome );
+  printf("classe: ");
+  switch (m.classe) {
+    case tenebre:
+      printf("tenebre\n");
+      break;
+    case luce:
+      printf("luce\n");
+      break;
+    case vita:
+      printf("vita\n");
+      break;
   }
-  c[5].punti_vita=0;
+  printf("punti vita: %d\n", m.PV );
+  printf("\n");
+}
+
+static carta* Crea_carta(){
+  carta *c = (carta*) malloc(sizeof(carta));
+  int tipo =rand()%100;
+  if(tipo<40){ //40% di probabilità che sia una creatura
+    c->tipo=creatura;
+  }
+  else if(tipo<65){//25% di probabilità che sia un rimuovi creatura
+    c->tipo=rimuovi_creatura;
+  }
+  else if(tipo<85){//20% di probabilità che sia un infliggi danno
+    c->tipo=infliggi_danno;
+  }
+  else{//15% di probabilità che sia un guarisci danno
+    c->tipo=guarisci_danno;
+  }
+  c->punti_vita= (rand()%6)+1;
+  c->next= NULL;
+
   return c;
 }
 
-static void Stampa_mano(carta *c){
-  if(c==mago1.mano)
-    printf("Mano del primo mago:\n");
-  else
-    printf("Mano del secondo mago:\n");
-  for (int i = 0; i < 6; i++) {
-    Stampa_carta(c[i]);
+static void Popola_mano(mago *m){
+  for (int i = 0; i < 5; i++) {
+    carta *c =Crea_carta();
+    m->mano[i]=c;
+  }
+  m->mano[5]=NULL;
+  return;
+}
+
+static void Crea_campo(mago *m){
+  for (int i = 0; i < 4; i++) {
+    m->campo[i]=NULL;
   }
 }
 
-static void Stampa_carta(carta c){
-  if(c.punti_vita!=0){
-    switch (c.tipo) {
+static void Stampa_campo(mago *m){
+  printf("Campo del mago %s:\n", m->nome);
+  for (int i = 0; i < 4; i++) {
+    Stampa_carta(m->campo[i]);
+  }
+  printf("\n");
+}
+
+static void Stampa_mano(mago *m){
+  printf("Mano del mago %s:\n", m->nome);
+  for (int i = 0; i < 6; i++) {
+    Stampa_carta(m->mano[i]);
+  }
+  printf("\n");
+}
+
+static void Stampa_carta(carta *c){
+  if(c!=NULL){
+    switch (c->tipo) {
       case creatura:
-        printf("Creatura con %d punti vita\n", c.punti_vita);
+        printf("Creatura con %d punti vita\n", c->punti_vita);
         break;
       case rimuovi_creatura:
         printf("Rimuovi Creatura\n");
         break;
       case infliggi_danno:
-        printf("Inflliggi %d danni \n", c.punti_vita);
+        printf("Inflliggi %d danni \n", c->punti_vita);
         break;
       case guarisci_danno:
-        printf("Guarisci %d danni\n", c.punti_vita);
+        printf("Guarisci %d danni\n", c->punti_vita);
         break;
       default:
         printf("Roba strana\n");
@@ -188,41 +215,53 @@ static void Stampa_carta(carta c){
   }
 }
 
-static void Impila_mazzo(carta* pr, carta* ul){
-  // Creation of a new card in the heap
-  carta *pNew = (carta*) malloc(sizeof(carta));
-  pNew->tipo=rand()%4;
-  pNew->punti_vita= (rand()%6)+1;
-  pNew->next= NULL;
-
-  if(pr == NULL){ // No card in the list
-    pr = pNew; // The first card is the newly created one
-    ul = pNew; // The last card is the newly created one
+static void Impila_mazzo(mago* m, int n){
+  for (int i = 0; i < n; i++) {
+    carta *c =Crea_carta();
+    if(m->inizio_mazzo == NULL){ // No card in the list
+      m->inizio_mazzo=c;
+    }
+    else{
+      carta *tmp = m->inizio_mazzo;
+      while(tmp->next!=NULL){
+        tmp = tmp->next;
+      }
+      tmp->next=c;
+    }
   }
-  else{
-    // Else, there is already at least one card in the list
-    ul-> next= pNew; // the last card becomes the second one
-    ul= pNew; // The last card is the newly created one
-  }
-
-  printf("puntatore prima carta%p\n", pr );
-  printf("puntatore a questa carta%p\n", pNew );
-  printf("puntatore alla prossima carta: %p\n", pNew->next );
-  printf("puntatore ultima carta%p\n", ul );
-
   return;
 }
 
-static void Stampa_mazzo(carta* c, int n){
+static void Stampa_mazzo(mago m){
+  carta* prima = m.inizio_mazzo;
   printf("Mazzo:\n");
-  for (int i = 0; i < n; i++) {
-    Stampa_carta(c[i]);
+  if(prima == NULL){ // No node in the list
+    printf("Mazzo vuoto!");
   }
+  else{
+    carta* pScan = prima;
+    do{
+      Stampa_carta(pScan);
+      pScan = pScan->next;
+    }while(pScan!= NULL);
+  }
+  printf("\n");
+  return;
 }
-
 
 void Combatti(){
   printf("Combatti\n");
+}
+
+static void Pesca(mago* m){
+  carta* ptemp= m->inizio_mazzo;
+  if(ptemp==NULL)
+    printf("Mazzo finito, fine\n");
+  else if (ptemp->next == NULL){
+    printf("Ultima carta del mazzo\n");
+    //Inserisci_mano(m, ptemp);
+
+  }
 }
 
 void Termina_gioco(){
@@ -230,57 +269,6 @@ void Termina_gioco(){
 
   printf("Il gioco è terminato, attenderò in questa piana ventosa per il prossimo duello\n");
 }
-
-/*metodo fatto a lezione
-static void stampa_mazzo(mago m){
-  carta* ptemp = mago.inzio_mazzo;
-  while(ptemp!=NULL){
-    printf("tipo carta: %d\n", ptemp->tipo_carta );
-    printf("%s\n");
-
-    ptemp=ptemp->next;
-  }
-}*/
-
-
-//print
-/* As a parameter, it takes the pointer to the first node of a list
-static void print_list(carta* prima){
-  if(prima == NULL){ // No node in the list
-    printf("No node in the list!");
-  }
-  else{
-    // New pointer used to scan the list.
-    carta* pScan = prima;
-    do{
-      printf("Info: %d\n", pScan->punti_vita);
-      // ptrScan is updated to point to the next node in the
-      // list
-      pScan = pScan->next;
-    }while(pScan!= NULL); //NULL when this was the last node
-  }
-  return;
-}*/
-
-//tail insertion
-/// Node* pFirst is a pointer to the first node and Node* pLast to the last node of
-/* a list (both global)
-static void tail_insertion(void){
-  // Creation of a new node in the heap
-  carta *pNew = (carta*) malloc(sizeof(carta));
-  scanf("%d", &(pNew->punti_vita));
-  pNew->next= NULL;
-  if(prima == NULL){ // No node in the list
-    prima = pNew; // The first node is the newly created one
-    ultima = pNew; // The last node is the newly created one
-  }
-  else{
-    // Else, there is already at least one node in the list
-    ultima-> next= pNew; // the last node becomes the second one
-    ultima= pNew; // The last node is the newly created one
-  }
-  return;
-}*/
 
 /*tail deletion
 static void tail_deletion() {
