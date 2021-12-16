@@ -8,7 +8,6 @@ int main( ) {
   int flag=1;//controlla inserimento 1 2 3
   int flagp=0;//evita duplicazioni di stampa
   char scelta[256];
-  int imp=0;
 
   system("clear");
   printf("Benvenuti in questa piana desolata\n");
@@ -29,13 +28,9 @@ int main( ) {
       switch(scelta[0]){
         case 49:
           Imposta_gioco();
-          imp=1;
           break;
         case 50:
-          if(imp)
             Combatti();
-          else
-            printf("Il gioco deve prima essere impostato!\n");
           break;
         case 51:
           Termina_gioco();

@@ -16,8 +16,8 @@ typedef struct Mago{
   char nome[64];
   int PV; //unsigned short
   enum classe_mago classe;
-  carta* inizio_mazzo;//carta in fondo - pfirst
-  carta* fine_mazzo; //carta da pescare - plast
-  carta* mano[6];//array [6]
-  carta* campo[4];//array [4]
+  carta* inizio_mazzo;//carta in fondo
+  carta* fine_mazzo; //carta da pescare
+  carta* mano[6];
+  carta* campo[4];
 }mago;
