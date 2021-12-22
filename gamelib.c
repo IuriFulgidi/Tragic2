@@ -5,6 +5,12 @@
 #include <string.h>
 #include <time.h>
 
+//appunti:
+//controlla che sceglie una creatura, non un null
+//magri si conta qunate creature ci sono sul campo
+//quando una creatura muore si deve sistemare il campo, come qunado viene giocata una carta
+//qunado si gioca una carta controlla che sia stata effettivamente giocata
+
 //variabili globali
 static mago mago1;
 static mago mago2;
@@ -12,15 +18,16 @@ static mago* magoT;//mago di turn
 static int ctrm=0;//contatore stampa maghi
 static int n;//# carte dei mazzi
 static int imp=1;//controlla che il gioco sia stato impostato
-static short flag_mc=1;//controlla menu combatti
+static short flag_term_part=1;//controlla menu combatti
 static char scelta[256];//scelta menu combatti
 static short flag_att=0;//flag metodi combatti
 static short flag_gio=0;
 static short flag_pes=0;
 
 //dichiarazione funzioni
+//per Imposa_gioco
 static void Crea_mago(mago*);
-static void Stampa_mago(mago);
+static void Stampa_mago(mago*);
 static carta* Crea_carta(mago*, int);
 static void Stampa_carta(carta*);
 static void Crea_mano(mago*);
@@ -30,12 +37,15 @@ static void Stampa_campo(mago*);
 static void Impila_mazzo(mago*);
 static void Stampa_mazzo(mago);
 static void Stampa_magoT(void);
+//per Gioca
 static void Pesca(mago*);
 static void Aggiungi_mano(mago*, carta*);
 static void Gioca(void);
 static void Attacca(void);
 static void Passa(void);
-static void Termina_partita();
+static void Termina_partita(void);
+//funzioni di utilità
+static int Inserisci_numero(void);//per evitare loop infiniti con inserimenti strani alla richiesta di un numero
 
 void Imposta_gioco(){
   system("clear");
@@ -48,15 +58,40 @@ void Imposta_gioco(){
   Crea_mago(&mago2);
 
   //numero di carte nel mazzo
-  short flag=0;
+  short flag_tmp=0;
   do {
+    char tmp[256];
     printf("Inserire il numero di carte dei mazzi, compreso tra 0 e 80\n");
-    scanf("%d",&n);
-    if(n<1 || n>80)
-      flag=1;
+    fgets(tmp, 256, stdin);
+    if(strlen(tmp)>1){//per evitare doppie stampe
+      flag_tmp=0;
+      //si controlla che in input sia stato inserito solo 1 o 2 caratteri
+      if(strlen(tmp)>3){
+        flag_tmp=1;
+        continue;
+      }
+      if(strlen(tmp)==2){//se è stata inserita un numero a una cifra
+        if(tmp[0]>47 && tmp[0]<58){
+          n=((int)tmp[0])-48;
+          flag_tmp=0;
+        }
+        else
+          flag_tmp=1;
+      }
+      else{// se è stato inserito un numero a due cifre
+        if(tmp[0]>47 && tmp[0]<56 && tmp[1]>47 && tmp[1]<58){
+          int decine = (((int)tmp[0])-48)*10;
+          int unita = ((int)tmp[1])-48;
+          n= decine+unita;
+          flag_tmp=0;
+        }
+        else
+          flag_tmp=1;
+      }
+    }
     else
-      flag=0;
-  } while(flag);
+      flag_tmp=1;
+  } while(flag_tmp);
 
   Crea_mano(&mago1);
   Crea_mano(&mago2);
@@ -69,12 +104,11 @@ void Imposta_gioco(){
 
   //si stampano le informazioni impostate
   system("clear");
-  printf("\n");
-  Stampa_mago(mago1);
-  Stampa_mago(mago2);
+  printf("Gioco impostato!\n\n");
+  Stampa_mago(&mago1);
+  Stampa_mago(&mago2);
   printf("Mazzi di %d carte\n",n );
 
-  printf("Gioco impostato!\n");
   imp=0;
 }
 
@@ -93,9 +127,9 @@ static void Crea_mago(mago* m){
   m->nome[strlen(m->nome)-1]='\0';
 
   if(ctrm%2==0)
-    printf("Inserire la classe del primo mago\n");
+    printf("\nInserire la classe del primo mago\n");
   else
-    printf("Inserire la classe del secondo mago\n");
+    printf("\nInserire la classe del secondo mago\n");
 
   printf("\nVita: le creature hanno la metà dei punti vita in più\n");
   printf("Tenebre: le carte infliggi danno, feriscono il doppio\n");
@@ -129,10 +163,10 @@ static void Crea_mago(mago* m){
   return;
 }
 
-static void Stampa_mago(mago m){
-  printf("Mago %s\n", m.nome );
+static void Stampa_mago(mago* m){
+  printf("Mago %s\n", m->nome );
   printf("Classe: ");
-  switch (m.classe) {
+  switch (m->classe) {
     case tenebre:
       printf("tenebre\n");
       break;
@@ -143,7 +177,7 @@ static void Stampa_mago(mago m){
       printf("vita\n");
       break;
   }
-  printf("Punti vita: %.1f\n", m.PV );
+  printf("Punti vita: %.1f\n", m->PV );
   printf("\n");
 }
 
@@ -236,6 +270,8 @@ static void Crea_mano(mago *m){
 static void Stampa_mano(mago *m){
   printf("Mano del mago %s:\n", m->nome);
   for (int i = 0; i < 6; i++) {
+    if(m->mano[i]!=NULL)
+      printf("%d : ", i+1);
     Stampa_carta(m->mano[i]);
   }
   printf("\n");
@@ -251,6 +287,8 @@ static void Crea_campo(mago *m){
 static void Stampa_campo(mago *m){
   printf("Campo del mago %s:\n", m->nome);
   for (int i = 0; i < 4; i++) {
+    if(m->campo[i]!=NULL)
+      printf("%d : ", i+1);
     Stampa_carta(m->campo[i]);
   }
   printf("\n");
@@ -289,6 +327,7 @@ static void Stampa_mazzo(mago m){
 }
 
 void Combatti(){
+  short flagp=0;//evita duplicazioni di stampa
   system("clear");
   if(imp){
     printf("Il gioco deve prima essere impostato!\n");
@@ -302,37 +341,44 @@ void Combatti(){
 
   Stampa_magoT();
   do{
-    printf("\nCosa desideri fare?\n1 : pescare una carta\n2 : giocare una carta\n3 : attaccare\n4 : stampare la tua mano\n5 : stampare il campo\n6 : passare il turno\n\n");
+    if(!flagp)
+      printf("\nCosa desideri fare?\n1 : pescare una carta\n2 : giocare una carta\n3 : attaccare\n4 : stampare la tua mano\n5 : stampare il campo\n6 : passare il turno\n\n");
     fgets(scelta, 256, stdin);
+
     //si controlla che in input sia stato inserito un solo carattere
-    if(scelta[1]!=10){
-      printf("Inserire solo 1, 2, 3, 4, 5 o 6\n");
-      continue;
+    if(strlen(scelta)>1){
+      flagp=0;
+      if(scelta[1]!=10){
+        printf("Inserire solo 1, 2, 3, 4, 5 o 6\n");
+        continue;
+      }
+      switch(scelta[0]){
+        case 49:
+          Pesca(magoT);
+          break;
+        case 50:
+          Gioca();
+          break;
+        case 51:
+          Attacca();
+          break;
+        case 52:
+          Stampa_mano(magoT);
+          break;
+        case 53:
+          Stampa_campo(&mago1);
+          Stampa_campo(&mago2);
+          break;
+        case 54:
+          Passa();
+          break;
+        default:
+          printf("inserire solo 1, 2, 3, 4, 5 o 6\n");
+      }
     }
-    switch(scelta[0]){
-      case 49:
-        Pesca(magoT);
-        break;
-      case 50:
-        Gioca();
-        break;
-      case 51:
-        Attacca();
-        break;
-      case 52:
-        Stampa_mano(magoT);
-        break;
-      case 53:
-        Stampa_campo(&mago1);
-        Stampa_campo(&mago2);
-        break;
-      case 54:
-        Passa();
-        break;
-      default:
-        printf("inserire solo 1, 2, 3, 4, 5 o 6\n");
-    }
-  }while(flag_mc);
+    else
+      flagp=1;
+  }while(flag_term_part);
 }
 
 static void Stampa_magoT(){
@@ -404,17 +450,30 @@ static void Gioca(){
   Stampa_mano(magoT);
 
   do{
-    printf("\ninserire un numero da 1 a 6 per scegliere la carta che vuoi giocare\n");
-    scanf("%d",&s);
+    //si controlla che ci sia almeno una creatura con cui attaccare
+    short flag_m=1;
+    int ctr_m=0;
+    for (int i = 0; i < 6; i++) {
+      if(magoT->mano[i]!=NULL){
+        flag_m=0;
+        ctr_m++;
+      }
+    }
+    if(flag_m){
+      printf("Non hai carte da giocare in mano!\n");
+      return;
+    }
+    flag_m=0;
+    printf("\ninserire un numero da 1 a %d per scegliere la carta che vuoi giocare\n", ctr_m);
+    s=Inserisci_numero();
 
     //controllo
-    if(s<1 || s>6){
-      printf("Il numero deve essere compreso tra 1 e 6\n");
+    if(s<1 || s>ctr_m){
+      printf("Il numero deve essere compreso tra 1 e %d\n",ctr_m);
       flag=1;
     }
     else{
       flag=0;
-
       carta* carta_giocata=magoT->mano[s-1];//carta che viene giocata
 
       //si prende il mago avversario a quello di turno
@@ -461,7 +520,7 @@ static void Gioca(){
 
             int p_r;
             printf("inserire un numero tra 1 e %d per scegliere la creatura avversaria da rimuovere\n",ctr_r);
-            scanf("%d",&p_r);
+            p_r=Inserisci_numero();
 
             if(p_r<1||p_r>ctr_r)
               flag_r=1;
@@ -480,7 +539,7 @@ static void Gioca(){
           int s_i;
           do{
             printf("A chi vuoi infliggere il danno?\n1 : creatura\n2 : mago avversario\n");
-            scanf("%d",&s_i);
+            s_i=Inserisci_numero();
 
             if(s_i==1){
               //si controlla che ci sia almeno una creatura da danneggiare
@@ -504,23 +563,24 @@ static void Gioca(){
 
                 int p_i;
                 printf("inserire un numero tra 1 e %d per scegliere la creatura avversaria da danneggiare\n",ctr_i);
-                scanf("%d",&p_i);
+                p_i=Inserisci_numero();
 
                 if(p_i<1||p_i>ctr_i)
                   flag_i=1;
                 else{
-                  carta* bersaglio=mago_avv->campo[p_i-1];
 
-                  printf("Hai inflitto %.1f danni alla creatura con  %.1f punti vita\n",carta_giocata->punti_vita, bersaglio->punti_vita);
-                  bersaglio->punti_vita=bersaglio->punti_vita-carta_giocata->punti_vita;
+                  printf("Hai inflitto %.1f danni alla creatura con  %.1f punti vita\n",carta_giocata->punti_vita, mago_avv->campo[p_i-1]->punti_vita);
+                  mago_avv->campo[p_i-1]->punti_vita=mago_avv->campo[p_i-1]->punti_vita-carta_giocata->punti_vita;
 
                   //si controlla che la creatura sia stata distrutta
-                  if(bersaglio->punti_vita<=0){
-                    free(bersaglio);
+                  if(mago_avv->campo[p_i-1]->punti_vita<=0){
+                    free(mago_avv->campo[p_i-1]);
                     mago_avv->campo[p_i-1]=NULL;
                     printf("La creatura è stata rimossa\n");
                   }
                   flag_i=0;
+
+                  Stampa_campo(mago_avv);
                 }
               }while (flag_i);
             }
@@ -528,11 +588,11 @@ static void Gioca(){
               //si picchia il mago
               mago_avv->PV=mago_avv->PV-carta_giocata->punti_vita;
               printf("Hai inflitto %.1f danni al tuo avversario\n",carta_giocata->punti_vita);
-
+              Stampa_mago(mago_avv);
               //si controlla che il mago sia morto
               if(mago_avv->PV<=0){
                 printf("Hai portato i punti vita del to avversario a zero!\n");
-                Termina_gioco();
+                Termina_partita();
               }
             }
             else{
@@ -548,7 +608,7 @@ static void Gioca(){
           int s_g;
           do{
             printf("Chi vuoi guarire?\n1 : creatura\n2 : me stesso\n");
-            scanf("%d",&s_g);
+            s_g=Inserisci_numero();
 
             if(s_g==1){
               //si controlla che ci sia almeno una creatura da curare
@@ -572,17 +632,16 @@ static void Gioca(){
 
                 int p_g;
                 printf("inserire un numero tra 1 e %d per scegliere la creatura da guarire\n",ctr_g);
-                scanf("%d",&p_g);
+                p_g=Inserisci_numero();
 
                 if(p_g<1||p_g>ctr_g)
                   flag_g=1;
                 else{
-                  carta* bersaglio=mago_avv->campo[p_g-1];
-
-                  printf("Hai guarito per %.1f punti vita la creatura con %.1f punti vita\n",carta_giocata->punti_vita, bersaglio->punti_vita);
-                  bersaglio->punti_vita=bersaglio->punti_vita+carta_giocata->punti_vita;
+                  printf("Hai guarito per %.1f punti vita la creatura con %.1f punti vita\n",carta_giocata->punti_vita, mago_avv->campo[p_g-1]->punti_vita);
+                  mago_avv->campo[p_g-1]->punti_vita=mago_avv->campo[p_g-1]->punti_vita+carta_giocata->punti_vita;
 
                   flag_g=0;
+                  Stampa_campo(mago_avv);
                 }
               }while (flag_g);
             }
@@ -590,6 +649,7 @@ static void Gioca(){
               //si guarisce il mago
               magoT->PV=magoT->PV+carta_giocata->punti_vita;
               printf("Sei guarito %.1f punti vita\n",carta_giocata->punti_vita);
+              Stampa_mago(magoT);
             }
             else{
               printf("Inserire solo 1 o 2\n");
@@ -624,38 +684,49 @@ static void Attacca(){
   Stampa_campo(magoT);
 
   do{
-    printf("\ninserire un numero da 1 a 4 per scegliere la carta che vuoi giocare\n");
-    scanf("%d",&s);
+    //si controlla che ci sia almeno una creatura con cui attaccare
+    short flag_a=1;
+    int ctr_a=0;
+    for (int i = 0; i < 4; i++) {
+      if(magoT->campo[i]!=NULL){
+        flag_a=0;
+        ctr_a++;
+      }
+    }
+    if(flag_a){
+      printf("Non controlli creature con cui attaccare!\n");
+      return;
+    }
+    flag_a=0;
 
-    //controllo
+    //si sceglie la creatura cuon cui attacare
+    printf("\ninserire un numero da 1 a %d per scegliere la creatura con cui vuoi attaccare\n", ctr_a);
+    s=Inserisci_numero();
+
+    //controllo sulla scelta
     if(s<1 || s>4){
-      printf("Il numero deve essere compreso tra 1 e 6\n");
+      printf("Il numero deve essere compreso tra 1 e %d\n", ctr_a);
       flag=1;
     }
     else{
       flag=0;
-      carta* carta_giocata=magoT->mano[s-1];//carta che viene giocata
-
-      //appunto:
-      //controlla che sceglie una creatura, non un null
-      //magri si conta qunate creature ci sono sul campo
-      //quando una creatura muore si deve sistemare il campo, come qunado viene giocata una carta
+      carta* carta_giocata=magoT->campo[s-1];//creatura che attacca
 
       //si prende il mago avversario a quello di turno
       mago* mago_avv=&mago1;
       if(magoT==&mago1)
         mago_avv=&mago2;
-      short flag_a=0;
-      //si sceglie il bersaglio da danneggiare
+
+      //si sceglie il bersaglio da attaccare
       int s_a;
       do{
         printf("Chi vuoi attacare?\n1 : creatura\n2 : mago avversario\n");
-        scanf("%d",&s_a);
+        s_a=Inserisci_numero();
 
         if(s_a==1){
           //si controlla che ci sia almeno una creatura da danneggiare
-          short flag_a=1;
-          int ctr_a=0;
+          flag_a=1;
+          ctr_a=0;
           for (int i = 0; i < 4; i++) {
             if(mago_avv->campo[i]!=NULL){
               flag_a=0;
@@ -667,26 +738,26 @@ static void Attacca(){
             break;
           }
 
-          //si sceglie la creatura da danneggiare
+          //si sceglie la creatura da attaccare
           flag_a=0;
           do{
             Stampa_campo(mago_avv);
 
             int p_a;
             printf("inserire un numero tra 1 e %d per scegliere la creatura avversaria da attaccare\n",ctr_a);
-            scanf("%d",&p_a);
+            p_a=Inserisci_numero();
 
             if(p_a<1||p_a>ctr_a)
               flag_a=1;
             else{
-              carta* bersaglio=mago_avv->campo[p_a-1];
+              printf("Hai inflitto %.1f danni alla creatura con  %.1f punti vita\n",carta_giocata->punti_vita, mago_avv->campo[p_a-1]->punti_vita);
+              mago_avv->campo[p_a-1]->punti_vita=mago_avv->campo[p_a-1]->punti_vita-carta_giocata->punti_vita;
 
-              printf("Hai inflitto %.1f danni alla creatura con  %.1f punti vita\n",carta_giocata->punti_vita, bersaglio->punti_vita);
-              bersaglio->punti_vita=bersaglio->punti_vita-carta_giocata->punti_vita;
+              Stampa_campo(mago_avv);
 
-              //si controlla che la creatura sia stata distrutta
-              if(bersaglio->punti_vita<=0){
-                free(bersaglio);
+              //si controlla se la creatura sia stata distrutta
+              if(mago_avv->campo[p_a-1]->punti_vita<=0){
+                free(mago_avv->campo[p_a-1]);
                 mago_avv->campo[p_a-1]=NULL;
                 printf("La creatura avversaria è stata rimossa\n");
               }
@@ -698,6 +769,8 @@ static void Attacca(){
           //si picchia il mago
           mago_avv->PV=mago_avv->PV-carta_giocata->punti_vita;
           printf("Hai inflitto %.1f danni al tuo avversario\n",carta_giocata->punti_vita);
+
+          Stampa_mago(mago_avv);
 
           //si controlla che il mago sia morto
           if(mago_avv->PV<=0){
@@ -729,11 +802,10 @@ static void Passa(){
   flag_pes=0;
   flag_gio=0;
   flag_att=0;
-
 }
 
 static void Termina_partita(){
-  flag_mc=0;
+  flag_term_part=0;
   printf("\nPartita finita\n");
   if(mago1.PV>mago2.PV){
     printf("Ha vinto %s!\n",mago1.nome );
@@ -753,6 +825,23 @@ void Termina_gioco(){
   //free
 
   printf("Il gioco è terminato, attenderò in questa piana ventosa per il prossimo duello\n");
+}
+
+static int Inserisci_numero(){
+  do{
+    //varaibile stringa di supporto
+    char tmp[256];
+    fgets(tmp, 256, stdin);
+
+    if(strlen(tmp)>1){//per evitare doppie stampe
+      //si controlla che in input sia stato inserito un solo carattere
+      if(strlen(tmp)==2){
+        if(tmp[0]>48 && tmp[0]<58){//si controlla che il carattere sia una cifra
+          return((int)tmp[0])-48;
+        }
+      }
+    }
+  } while(1);
 }
 
 /*tail deletion

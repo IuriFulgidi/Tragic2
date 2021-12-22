@@ -5,8 +5,8 @@
 
 int main( ) {
   //si dichiarano le varibili
-  int flag=1;//controlla inserimento 1 2 3
-  int flagp=0;//evita duplicazioni di stampa
+  short flag=1;//controlla inserimento 1 2 3
+  short flagp=0;//evita duplicazioni di stampa
   char scelta[256];
 
   system("clear");
