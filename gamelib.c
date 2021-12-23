@@ -5,22 +5,16 @@
 #include <string.h>
 #include <time.h>
 
-//appunti:
-//controlla che sceglie una creatura, non un null
-//magri si conta qunate creature ci sono sul campo
-//quando una creatura muore si deve sistemare il campo, come qunado viene giocata una carta
-//qunado si gioca una carta controlla che sia stata effettivamente giocata
-
 //variabili globali
 static mago mago1;
 static mago mago2;
-static mago* magoT;//mago di turn
+static mago* magoT;//mago di turno
 static int ctrm=0;//contatore stampa maghi
 static int n;//# carte dei mazzi
-static int imp=1;//controlla che il gioco sia stato impostato
-static short flag_term_part=1;//controlla menu combatti
+static short imp=0;//controlla che il gioco sia stato impostato
+static short flag_term_part=0;//controlla menu combatti
 static char scelta[256];//scelta menu combatti
-static short flag_att=0;//flag metodi combatti
+static short flag_att=0;//flag per le funzioni in combatti
 static short flag_gio=0;
 static short flag_pes=0;
 
@@ -35,20 +29,28 @@ static void Stampa_mano(mago*);
 static void Crea_campo(mago*);
 static void Stampa_campo(mago*);
 static void Impila_mazzo(mago*);
-static void Stampa_mazzo(mago);
-static void Stampa_magoT(void);
 //per Gioca
+static void Stampa_magoT(void);//stampa il nome del mago di turno
 static void Pesca(mago*);
 static void Aggiungi_mano(mago*, carta*);
 static void Gioca(void);
 static void Attacca(void);
+static void Sistema_campo(mago*);//riordina il campo quando una creatura viene rimossa
 static void Passa(void);
 static void Termina_partita(void);
 //funzioni di utilità
+static void Dealloca(void);//per liberare la memoria
+static void Dealloca_mano(mago*);
+static void Dealloca_mazzo(mago*);
+static void Dealloca_campo(mago*);
 static int Inserisci_numero(void);//per evitare loop infiniti con inserimenti strani alla richiesta di un numero
 
 void Imposta_gioco(){
-  system("clear");
+system("clear");
+
+  //se il giocco è stato già impostato si llbera la memoria precedente
+  if(imp)
+    Dealloca();
 
   //variabili random
   time_t t;
@@ -61,7 +63,7 @@ void Imposta_gioco(){
   short flag_tmp=0;
   do {
     char tmp[256];
-    printf("Inserire il numero di carte dei mazzi, compreso tra 0 e 80\n");
+    printf("Inserire il numero di carte dei mazzi, tra 0 e 80, non compresi\n");
     fgets(tmp, 256, stdin);
     if(strlen(tmp)>1){//per evitare doppie stampe
       flag_tmp=0;
@@ -71,7 +73,7 @@ void Imposta_gioco(){
         continue;
       }
       if(strlen(tmp)==2){//se è stata inserita un numero a una cifra
-        if(tmp[0]>47 && tmp[0]<58){
+        if(tmp[0]>48 && tmp[0]<58){
           n=((int)tmp[0])-48;
           flag_tmp=0;
         }
@@ -109,7 +111,8 @@ void Imposta_gioco(){
   Stampa_mago(&mago2);
   printf("Mazzi di %d carte\n",n );
 
-  imp=0;
+  imp=1;
+  flag_term_part=0;
 }
 
 static void Crea_mago(mago* m){
@@ -176,9 +179,10 @@ static void Stampa_mago(mago* m){
     case vita:
       printf("vita\n");
       break;
+    default:
+      printf("Il Frazzi è un bel ragazzo\n");
   }
-  printf("Punti vita: %.1f\n", m->PV );
-  printf("\n");
+  printf("Punti vita: %.1f\n\n", m->PV );
 }
 
 static carta* Crea_carta(mago* m, int pos){
@@ -231,6 +235,8 @@ static carta* Crea_carta(mago* m, int pos){
       if(c->tipo==guarisci_danno)
         c->punti_vita=c->punti_vita*3.5;
       break;
+    default:
+      printf("Mi piacciono i treni\n");
   }
 
   c->next= NULL;
@@ -309,28 +315,20 @@ static void Impila_mazzo(mago* m){
   return;
 }
 
-static void Stampa_mazzo(mago m){
-  carta* prima = m.inizio_mazzo;
-    printf("Mazzo del mago %s:\n", m.nome);
-  if(prima == NULL){ //Nel caso di lista vuota
-    printf("Mazzo vuoto!");
-  }
-  else{
-    carta* tmp = prima;
-    do{
-      Stampa_carta(tmp);//si stampa la carta
-      tmp = tmp->next;//si passa alla successiva
-    }while(tmp!= NULL);//finché non finisce la lista
-  }
-  printf("\n");
-  return;
-}
-
 void Combatti(){
+  //abbasso le flag nel caso vengano fatte due partite di seguito
+  flag_pes=0;
+  flag_gio=0;
+  flag_att=0;
+
   short flagp=0;//evita duplicazioni di stampa
   system("clear");
-  if(imp){
-    printf("Il gioco deve prima essere impostato!\n");
+  if(!imp){
+    printf("Il gioco deve essere impostato almeno una volta!\n");
+    return;
+  }
+  if(flag_term_part){
+    printf("Il gioco deve essere impostato nuovamente al termine di una partita!\n");
     return;
   }
 
@@ -378,7 +376,7 @@ void Combatti(){
     }
     else
       flagp=1;
-  }while(flag_term_part);
+  }while(!flag_term_part);
 }
 
 static void Stampa_magoT(){
@@ -387,11 +385,13 @@ static void Stampa_magoT(){
       printf("\nTurno del vitale %s\n",magoT->nome);
       break;
     case tenebre:
-      printf("\nTurno del teenbroso %s\n",magoT->nome);
+      printf("\nTurno del tenebroso %s\n",magoT->nome);
       break;
     case luce:
       printf("\nTurno dello splendente %s\n",magoT->nome);
       break;
+    default:
+      printf("Secondo la Bibbia è nata prima la gallina\n");
   }
 }
 
@@ -407,7 +407,7 @@ static void Pesca(mago* m){
     Termina_partita();
   }
   else if (tmp->next == NULL){//se non c'è una prossima carta
-    printf("Attenzione, ultima carta del mazzo\n");
+    printf("Hai pescato l'ultima carta del mazzo, se pescherai di nuovo la partita terminerà\n");
     Aggiungi_mano(m, tmp);//si pesca questa carta
     m->inizio_mazzo=NULL;//non ci sono altre carte del mazzo
   }
@@ -424,16 +424,17 @@ static void Pesca(mago* m){
 static void Aggiungi_mano(mago* m, carta* c){
   short flag=1;
   for (int i = 0; i < 6; i++){
-    if(m->mano[i]==NULL){//se la posizione nella manoo è libera
+    if(m->mano[i]==NULL){//se la posizione nella mano è libera
       m->mano[i]=c;
       printf("Hai pescato una carta ");
       Stampa_carta(c);
+      Stampa_mano(m);
       flag=0;
       break;
     }
   }
   if(flag){// se non ci sono posizioni libere
-    printf("Mano piena, la carta viene distrutta\n");
+    printf("Mano piena, la carta è persa per sempre tra i vicoli di Ravnika\n");
     free(c);
   }
 }
@@ -464,7 +465,7 @@ static void Gioca(){
       return;
     }
     flag_m=0;
-    printf("\ninserire un numero da 1 a %d per scegliere la carta che vuoi giocare\n", ctr_m);
+    printf("\nInserire un numero da 1 a %d per scegliere la carta che vuoi giocare\n", ctr_m);
     s=Inserisci_numero();
 
     //controllo
@@ -487,14 +488,14 @@ static void Gioca(){
           for (int i = 0; i < 4; i++){
             if(magoT->campo[i]==NULL){//la prima posizione libera nella campo
               magoT->campo[i]=carta_giocata;//si mette la creatura sul campo
-              printf("Hai posizionato sul campo la ");
-              Stampa_carta(carta_giocata);
+              Stampa_campo(magoT);
               flag_c=0;
+              flag_gio=1;
               break;
             }
           }
           if(flag_c){// se non ci sono posizioni libere
-            printf("Campo pieno, non puoi giocare una creatura\n");
+            printf("Campo pieno, non puoi giocare una carta creatura\n");
           }
           break;
         }
@@ -527,8 +528,11 @@ static void Gioca(){
             else{
               free(mago_avv->campo[p_r-1]);
               mago_avv->campo[p_r-1]=NULL;
-              printf("Creatura rimossa\n");
+              printf("La creatura avversaria è stata rimossa\n");
+              Sistema_campo(mago_avv);
+              Stampa_campo(mago_avv);
               flag_r=0;
+              flag_gio=1;
             }
           }while (flag_r);
           break;
@@ -576,9 +580,12 @@ static void Gioca(){
                   if(mago_avv->campo[p_i-1]->punti_vita<=0){
                     free(mago_avv->campo[p_i-1]);
                     mago_avv->campo[p_i-1]=NULL;
-                    printf("La creatura è stata rimossa\n");
+                    printf("La creatura avversaria è stata rimossa\n");
+                    Sistema_campo(mago_avv);
+                    Stampa_campo(mago_avv);
                   }
                   flag_i=0;
+                  flag_gio=1;
 
                   Stampa_campo(mago_avv);
                 }
@@ -589,6 +596,7 @@ static void Gioca(){
               mago_avv->PV=mago_avv->PV-carta_giocata->punti_vita;
               printf("Hai inflitto %.1f danni al tuo avversario\n",carta_giocata->punti_vita);
               Stampa_mago(mago_avv);
+              flag_gio=1;
               //si controlla che il mago sia morto
               if(mago_avv->PV<=0){
                 printf("Hai portato i punti vita del to avversario a zero!\n");
@@ -642,6 +650,7 @@ static void Gioca(){
 
                   flag_g=0;
                   Stampa_campo(mago_avv);
+                  flag_gio=1;
                 }
               }while (flag_g);
             }
@@ -650,6 +659,7 @@ static void Gioca(){
               magoT->PV=magoT->PV+carta_giocata->punti_vita;
               printf("Sei guarito %.1f punti vita\n",carta_giocata->punti_vita);
               Stampa_mago(magoT);
+              flag_gio=1;
             }
             else{
               printf("Inserire solo 1 o 2\n");
@@ -657,19 +667,22 @@ static void Gioca(){
             }
           }while(flag_g);
           break;
+        default:
+          printf("Il sole costituisce il 99 percento della massa del sistema solare\n");
         }
       }
     }
-    magoT->mano[s-1]=NULL;//la carta giocata non è più nella mano del mago
-    //si sistema la mano
-    for (int i = 0; i < 5; i++) {
-      if(magoT->mano[i]==NULL && magoT->mano[i+1]!=NULL){//se c'è un buco nella mano
-        magoT->mano[i]=magoT->mano[i+1];//si fanno scorrere il buco fino in fondo alla mano
-        magoT->mano[i+1]=NULL;
+    if(flag_gio){
+      magoT->mano[s-1]=NULL;//la carta giocata non è più nella mano del mago
+      //si sistema la mano
+      for (int i = 0; i < 5; i++) {
+        if(magoT->mano[i]==NULL && magoT->mano[i+1]!=NULL){//se c'è un buco nella mano
+          magoT->mano[i]=magoT->mano[i+1];//si fa scorrere il buco fino in fondo alla mano
+          magoT->mano[i+1]=NULL;
+        }
       }
     }
   }while(flag);
-  flag_gio=1;
 }
 
 static void Attacca(){
@@ -704,7 +717,7 @@ static void Attacca(){
     s=Inserisci_numero();
 
     //controllo sulla scelta
-    if(s<1 || s>4){
+    if(s<1 || s>ctr_a){
       printf("Il numero deve essere compreso tra 1 e %d\n", ctr_a);
       flag=1;
     }
@@ -753,14 +766,16 @@ static void Attacca(){
               printf("Hai inflitto %.1f danni alla creatura con  %.1f punti vita\n",carta_giocata->punti_vita, mago_avv->campo[p_a-1]->punti_vita);
               mago_avv->campo[p_a-1]->punti_vita=mago_avv->campo[p_a-1]->punti_vita-carta_giocata->punti_vita;
 
-              Stampa_campo(mago_avv);
-
+              flag_att=1;
               //si controlla se la creatura sia stata distrutta
               if(mago_avv->campo[p_a-1]->punti_vita<=0){
                 free(mago_avv->campo[p_a-1]);
                 mago_avv->campo[p_a-1]=NULL;
                 printf("La creatura avversaria è stata rimossa\n");
+                Sistema_campo(mago_avv);
+                Stampa_campo(mago_avv);
               }
+              Stampa_campo(mago_avv);
               flag_a=0;
             }
           }while (flag_a);
@@ -771,7 +786,7 @@ static void Attacca(){
           printf("Hai inflitto %.1f danni al tuo avversario\n",carta_giocata->punti_vita);
 
           Stampa_mago(mago_avv);
-
+          flag_att=1;
           //si controlla che il mago sia morto
           if(mago_avv->PV<=0){
             printf("Hai portato i punti vita del to avversario a zero!\n");
@@ -785,8 +800,15 @@ static void Attacca(){
       }while(flag_a);
     }
   }while(flag);
+}
 
-  flag_att=1;
+static void Sistema_campo(mago* m){
+  for (int i = 0; i < 3; i++) {
+    if(m->campo[i]==NULL && m->campo[i+1]!=NULL){//se c'è un buco nel campo
+      m->campo[i]=m->campo[i+1];//si fa scorrere il buco
+      m->campo[i+1]=NULL;
+    }
+  }
 }
 
 static void Passa(){
@@ -805,7 +827,7 @@ static void Passa(){
 }
 
 static void Termina_partita(){
-  flag_term_part=0;
+  flag_term_part=1;
   printf("\nPartita finita\n");
   if(mago1.PV>mago2.PV){
     printf("Ha vinto %s!\n",mago1.nome );
@@ -821,10 +843,63 @@ static void Termina_partita(){
 }
 
 void Termina_gioco(){
+  Dealloca();
   system("clear");
-  //free
-
   printf("Il gioco è terminato, attenderò in questa piana ventosa per il prossimo duello\n");
+}
+
+static void Dealloca(){
+  Dealloca_mazzo(&mago1);
+  Dealloca_mazzo(&mago2);
+  Dealloca_mano(&mago1);
+  Dealloca_mano(&mago2);
+  Dealloca_campo(&mago1);
+  Dealloca_campo(&mago2);
+}
+
+static void Dealloca_mano(mago *m){
+  for (int i = 0; i < 6; i++) {
+    if(m->mano[i]!=NULL){
+      free(m->mano[i]);
+      m->mano[i]=NULL;
+    }
+  }
+}
+
+static void Dealloca_campo(mago *m){
+  for (int i = 0; i < 4; i++) {
+    if(m->campo[i]!=NULL){
+      free(m->campo[i]);
+      m->campo[i]=NULL;
+    }
+  }
+}
+
+static void Dealloca_mazzo(mago* m) {
+  for (int  i = 0; i < n; i++) {//si svuota il mazzo
+    if(m->inizio_mazzo != NULL){
+      carta* cPrec = NULL;
+      carta* tmp = m->inizio_mazzo;
+      if(tmp->next == NULL) {// se c'è una sola carta
+        free(tmp);
+        m->inizio_mazzo= NULL; //visto che il mazzo è vuoto
+      }
+      else {
+        do{
+          if((tmp-> next) == m->fine_mazzo) {//siamo arrivati alla penultima carta
+            cPrec = tmp;
+            break;
+          }
+          else
+            tmp= tmp-> next; //si passa alla prossima
+        }while((tmp-> next) != NULL);
+
+        free(cPrec-> next);
+        cPrec-> next = NULL; //la carta precedente diventa l'ultima
+        m->fine_mazzo = cPrec;
+      }
+    }
+  }
 }
 
 static int Inserisci_numero(){
@@ -840,34 +915,8 @@ static int Inserisci_numero(){
           return((int)tmp[0])-48;
         }
       }
+      else
+        printf("Inserire un numero ad una cifra\n");
     }
   } while(1);
 }
-
-/*tail deletion
-static void tail_deletion() {
-  if(prima == NULL)
-    printf("No node in the list!\n");
-  else {
-    carta* pPrev = NULL;
-    carta* pScan = prima;
-    if(pScan->next == NULL) {// It means we only have one node in the list
-      free(pScan); // Free memory
-      prima= NULL; // Now the list is empty
-    }
-    else {// Otherwise, I need to scan the list until I find the last node (pLast)
-      do{
-        if((pScan-> next) == ultima) {// Reached the node before the end
-          pPrev = pScan;
-          break;
-        }
-        else
-          pScan= pScan-> next; // Otherwise, I need to iterate
-      }while((pScan-> next) != NULL);
-
-      free(pPrev-> next); // Free memory allocated to the last node
-      pPrev-> next = NULL; // pPrev becomes the last node (no node after it)
-      ultima = pPrev; // pPrev becomes the last node
-    }
-  }
-}*/
