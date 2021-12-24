@@ -1,5 +1,6 @@
 void Imposta_gioco();
 void Combatti();
+void Regole();
 void Termina_gioco();
 
 enum classe_mago {tenebre, vita, luce};

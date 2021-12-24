@@ -5,7 +5,7 @@
 
 int main( ) {
   //si dichiarano le varibili
-  short flag=1;//controlla inserimento 1 2 3
+  short flag=1;//controlla inserimento 1 2 3 4
   short flagp=0;//evita duplicazioni di stampa
   char scelta[256];
 
@@ -14,14 +14,14 @@ int main( ) {
   //menu di scelta
   do{
     if(!flagp)
-      printf("\nCosa desiderate fare?\n1 : impostare il gioco\n2 : combattere!\n3 : terminare il gioco gioco\n\n");
+      printf("\nCosa desiderate fare?\n1 : impostare il gioco\n2 : combattere!\n3 : visualizzare le regole\n4 : terminare il gioco\n\n");
     fgets(scelta, 256, stdin);
 
     if(strlen(scelta)>1){
       flagp=0;
       //si controlla che in input sia stato inserito un solo carattere
       if(scelta[1]!=10){
-        printf("Inserire solo 1,2 o 3\n");
+        printf("Inserire solo 1, 2, 3 o 4\n");
         flag=1;
         continue;
       }
@@ -33,11 +33,14 @@ int main( ) {
             Combatti();
           break;
         case 51:
+            Regole();
+          break;
+        case 52:
           Termina_gioco();
           flag=0;
           break;
         default:
-          printf("inserire solo 1, 2 o 3\n");
+          printf("inserire solo 1, 2, 3 o 4\n");
       }
     }
     else
