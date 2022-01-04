@@ -136,9 +136,9 @@ static void Crea_mago(mago* m){
   else
     printf("\nInserire la classe del secondo mago\n");
 
-  printf("\nVita: le creature hanno la metà dei punti vita in più\n");
-  printf("Tenebre: le carte infliggi danno, feriscono il doppio\n");
-  printf("Luce: le carte guarisci danno, sono 3.5 volte più efficaci\n\n");
+  printf("\nVita: le \e[0;32mcreature\e[0m hanno la metà dei punti vita in più\n");
+  printf("Tenebre: le carte \e[0;31minfliggi danno\e[0m, feriscono il doppio\n");
+  printf("Luce: le carte \e[0;34mguarisci danno\e[0m, sono 3.5 volte più efficaci\n\n");
 
   do {
     printf("Scegliere tra 'tenebre', 'vita' o 'luce'\n");
@@ -184,6 +184,8 @@ static void Stampa_mago(mago* m){
     default:
       printf("Il Frazzi è un bel ragazzo\n");
   }
+  if(m->PV<0)//per evitare stampe brutte
+    m->PV=0;
   printf("Punti vita: %.1f\n\n", m->PV );
   return;
 }
@@ -250,16 +252,16 @@ static void Stampa_carta(carta *c){
   if(c!=NULL){
     switch (c->tipo) {
       case creatura:
-        printf("Creatura con %.1f punti vita\n", c->punti_vita);
+        printf("\e[0;32mCreatura\e[0m con %.1f punti vita\n", c->punti_vita);
         break;
       case rimuovi_creatura:
-        printf("Rimuovi Creatura\n");
+        printf("\e[0;35mRimuovi Creatura\e[0m\n");
         break;
       case infliggi_danno:
-        printf("Infliggi %.1f danni \n", c->punti_vita);
+        printf("\e[0;31mInfliggi\e[0m %.1f danni \n", c->punti_vita);
         break;
       case guarisci_danno:
-        printf("Guarisci %.1f danni\n", c->punti_vita);
+        printf("\e[0;34mGuarisci\e[0m %.1f danni\n", c->punti_vita);
         break;
       default:
         printf("Houston, abbiamo un problema\n");
@@ -537,7 +539,7 @@ static void Gioca(){
               free(mago_avv->campo[posizione-1]);
               mago_avv->campo[posizione-1]=NULL;
               printf("La creatura avversaria è stata rimossa\n");
-              Sistema_campo(mago_di_turno);
+              Sistema_campo(mago_avv);
               Stampa_campo(mago_avv);
               rimossa=1;
               giocato=1;
@@ -589,8 +591,7 @@ static void Gioca(){
                     free(mago_avv->campo[p_i-1]);
                     mago_avv->campo[p_i-1]=NULL;
                     printf("La creatura avversaria è stata rimossa\n");
-                    Sistema_campo(mago_di_turno);
-                    Stampa_campo(mago_avv);
+                    Sistema_campo(mago_avv);
                   }
                   danneggiata=1;
                   giocato=1;
@@ -644,7 +645,7 @@ static void Gioca(){
               //si sceglie la creatura da guarire
               short guarito=0;
               do{
-                Stampa_campo(mago_avv);
+                Stampa_campo(mago_di_turno);
 
                 int posizione;
                 printf("inserire un numero tra 1 e %d per scegliere la creatura da guarire\n",ctr_campo);
@@ -653,10 +654,10 @@ static void Gioca(){
                 if(posizione<1||posizione>ctr_campo)
                   guarito=0;
                 else{
-                  printf("Hai guarito per %.1f punti vita la creatura con %.1f punti vita\n",carta_giocata->punti_vita, mago_avv->campo[posizione-1]->punti_vita);
-                  mago_avv->campo[posizione-1]->punti_vita=mago_avv->campo[posizione-1]->punti_vita+carta_giocata->punti_vita;
+                  printf("Hai guarito per %.1f punti vita la creatura con %.1f punti vita\n",carta_giocata->punti_vita, mago_di_turno->campo[posizione-1]->punti_vita);
+                  mago_di_turno->campo[posizione-1]->punti_vita=mago_di_turno->campo[posizione-1]->punti_vita+carta_giocata->punti_vita;
                   guarito=1;
-                  Stampa_campo(mago_avv);
+                  Stampa_campo(mago_di_turno);
                   giocato=1;
                 }
               }while (!guarito);
@@ -743,17 +744,19 @@ static void Attacca(){
         printf("Chi vuoi attacare?\n1 : creatura\n2 : mago avversario\n");
         bersaglio=Inserisci_numero();
 
+        //si controlla il campo avversario
+        short creature=0;
+        int ctr_campo_avv=0;
+        for (int i = 0; i < 4; i++) {
+          if(mago_avv->campo[i]!=NULL){
+            creature=1;
+            ctr_campo_avv++;
+          }
+        }
+
         if(bersaglio==1){
           //si controlla che ci sia almeno una creatura da danneggiare
-          short attaccabile=0;
-          int ctr_campo_avv=0;
-          for (int i = 0; i < 4; i++) {
-            if(mago_avv->campo[i]!=NULL){
-              attaccabile=1;
-              ctr_campo_avv++;
-            }
-          }
-          if(!attaccabile){
+          if(!creature){
             printf("Non ci sono creature avversarie da attaccare!\n");
             break;
           }
@@ -779,8 +782,7 @@ static void Attacca(){
                 free(mago_avv->campo[pos_creatura_bersaglio-1]);
                 mago_avv->campo[pos_creatura_bersaglio-1]=NULL;
                 printf("La creatura avversaria è stata rimossa\n");
-                Sistema_campo(mago_di_turno);
-                Stampa_campo(mago_avv);
+                Sistema_campo(mago_avv);
               }
               Stampa_campo(mago_avv);
               scelta_creatura_attaccata=1;
@@ -789,6 +791,12 @@ static void Attacca(){
           scelta_attaccato=1;
         }
         else if(bersaglio==2){
+          //il mago avversario non deve controllare creature
+          if(creature){
+            printf("Non puoi attaccare il tuo avversario perché ha creture che lo proteggono!\n");
+            break;
+          }
+
           //si picchia il mago
           mago_avv->PV=mago_avv->PV-carta_giocata->punti_vita;
           printf("Hai inflitto %.1f danni al tuo avversario\n",carta_giocata->punti_vita);
@@ -798,7 +806,7 @@ static void Attacca(){
           //si controlla che il mago sia morto
           if(mago_avv->PV<=0){
             printf("Hai portato i punti vita del to avversario a zero!\n");
-            Termina_gioco();
+            Termina_partita();
           }
           scelta_attaccato=1;
         }
@@ -937,15 +945,16 @@ void Regole(){
   printf("- Ogni mago inizia sempre con 5 carte in mano mentre il numero di carte dei mazzi può variare\n");
   printf("- Ogni mago inizia con 20 punti vita\n");
   printf("\n");
-  printf("- Se un mazzo finisce, la partita termina e vince il mago che a più vita\n");
+  printf("- Se un mazzo finisce, la partita termina e vince il mago che a più punti vita\n");
   printf("- Se i punti vita di un mago vengono ridotti a zero, il mago perde\n");
   printf("\n");
   printf("- Ci sono quattro tipi di carte:\n");
-  printf("- Infliggi danno, riducono i punti vita del bersaglio dei punti indicati\n");
-  printf("- Guarisci danno, aumentano i punti vita del bersaglio dei punti indicati\n");
-  printf("- Creatura, possono essere posizionate sul campo e attaccare\n");
-  printf("- Rimuovi creatura, elimina una creatura dal campo\n");
+  printf("-\e[0;31m Infliggi danno\e[0m, riduce i punti vita del bersaglio dei punti indicati\n");
+  printf("-\e[0;34m Guarisci danno\e[0m, aumenta i punti vita del bersaglio dei punti indicati\n");
+  printf("-\e[0;32m Creatura\e[0m, può essere posizionata sul campo e attaccare\n");
+  printf("-\e[0;35m Rimuovi creatura\e[0m, elimina una creatura dal campo\n");
   printf("\n");
   printf("- Se i punti vita di una creatura vengono ridotti a zero, la creatura viene rimossa dal campo\n");
+  printf("- Non si può attaccare direttamente un mago che controlla creature\n");
   printf("\n");
 }

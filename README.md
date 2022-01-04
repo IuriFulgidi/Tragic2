@@ -21,3 +21,4 @@ mazzi negativi e partite troppo lunghe.
 I punti vita delle carte in mano seguono i criteri della sezione finale, ovvero le carte che saranno pescate per prime.
 Questi sono comunque i valori di base che vengono poi modificati in base alla classe del mago.
 - É stata aggiunta una funzione Regole al menu principale nel main che permette di vedere le regole del gioco
+- Per attaccare il mago avversario questo non deve controllare nessuna creatura
