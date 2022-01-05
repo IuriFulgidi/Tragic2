@@ -8,7 +8,7 @@ enum classe_mago {tenebre, vita, luce};
 enum tipo_carta {creatura, rimuovi_creatura, infliggi_danno, guarisci_danno};
 
 typedef struct Carta{
-  char nome[20];
+  char nome[40];
   enum tipo_carta tipo;
   double punti_vita;
   struct Carta* next;

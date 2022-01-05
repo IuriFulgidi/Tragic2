@@ -111,7 +111,7 @@ system("clear");
   Stampa_mago(&mago1);
   Stampa_mago(&mago2);
   printf("Mazzi di %d carte\n",n );
-
+  
   impostato=1;
   partita_terminata=0;//per due partite consecutive
   return;
@@ -193,6 +193,8 @@ static void Stampa_mago(mago* m){
 static carta* Crea_carta(mago* m, int pos){
   //creazione carta base
   carta *c = (carta*) malloc(sizeof(carta));
+
+  //tipo
   int tipo =rand()%100;
   if(tipo<40){ //40% di probabilità che sia una creatura
     c->tipo=creatura;
@@ -207,6 +209,7 @@ static carta* Crea_carta(mago* m, int pos){
     c->tipo=guarisci_danno;
   }
 
+  //punti vita
   //modifiche in base alla posizione nel mazzo
   int max, min;
   double f = n/3;
@@ -241,7 +244,70 @@ static carta* Crea_carta(mago* m, int pos){
         c->punti_vita=c->punti_vita*3.5;
       break;
     default:
-      printf("Siuuuuuum\n");
+      printf("00101010\n");
+  }
+
+  //Nome
+  switch (c->tipo) {
+    case creatura:{
+      int n_nomi=12;//da cambiare all'aggiunta di nuovi nomi
+      char nomi[12][40]={
+        "Tarmogoyf",
+        "Morophon l'Illuminato",
+        "Ovar l'Innimorfo",
+        "Arcangelo di Thune",
+        "Thrun l'ultimo Troll",
+        "Batterskull",
+        "Mago SnapCaster",
+        "Liliana del Velo",
+        "Nemesi del Vero Nome",
+        "Bestia Procacciatrice",
+        "Nethoroi Alfa della Morte",
+        "Necropantera",
+      };
+      strcpy(c->nome, nomi[rand()%n_nomi]);
+      break;
+    }
+    case rimuovi_creatura:{
+      int n_nomi=4;//da cambiare all'aggiunta di nuovi nomi
+      char nomi[4][40]={
+        "Pulizia Planare",
+        "Spade ai Vomeri",
+        "Profezia di Fuoco",
+        "Rubapensieri",
+      };
+      strcpy(c->nome, nomi[rand()%n_nomi]);
+      break;
+    }
+    case infliggi_danno:{
+      int n_nomi=7;//da cambiare all'aggiunta di nuovi nomi
+      char nomi[7][40]={
+        "Brainstrom",
+        "Maledizione Della Stregoneria",
+        "Dipartita Dorata",
+        "Fulmine",
+        "Tifone di Squali",
+        "Risucchia Vita",
+        "Bacio della Vipera",
+      };
+      strcpy(c->nome, nomi[rand()%n_nomi]);
+      break;
+    }
+    case guarisci_danno:{
+      int n_nomi=6;//da cambiare all'aggiunta di nuovi nomi
+      char nomi[6][40]={
+        "Forza di Volonta",
+        "Benedizione della Cappellana",
+        "Anello Solare",
+        "Benedizione Benevola",
+        "Benedizione del Gelo",
+        "Loto Nero",
+      };
+      strcpy(c->nome, nomi[rand()%n_nomi]);
+      break;
+    }
+    default:
+      printf("Viva YuGiOh!\n");
   }
 
   c->next= NULL;
@@ -252,16 +318,16 @@ static void Stampa_carta(carta *c){
   if(c!=NULL){
     switch (c->tipo) {
       case creatura:
-        printf("\e[0;32mCreatura\e[0m con %.1f punti vita\n", c->punti_vita);
+        printf("\e[0;32m%s\e[0m, creatura con %.1f punti vita\n",c->nome, c->punti_vita);
         break;
       case rimuovi_creatura:
-        printf("\e[0;35mRimuovi Creatura\e[0m\n");
+        printf("\e[0;35m%s\e[0m, rimuovi creatura\n",c->nome);
         break;
       case infliggi_danno:
-        printf("\e[0;31mInfliggi\e[0m %.1f danni \n", c->punti_vita);
+        printf("\e[0;31m%s\e[0m, infliggi %.1f danni \n",c->nome, c->punti_vita);
         break;
       case guarisci_danno:
-        printf("\e[0;34mGuarisci\e[0m %.1f danni\n", c->punti_vita);
+        printf("\e[0;34m%s\e[0m, guarisci %.1f danni\n",c->nome, c->punti_vita);
         break;
       default:
         printf("Houston, abbiamo un problema\n");
