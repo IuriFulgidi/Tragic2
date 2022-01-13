@@ -31,6 +31,7 @@ static void Stampa_campo(mago*);
 static void Impila_mazzo(mago*);
 //per Gioca
 static void Stampa_mago_turno(void);//stampa il nome del mago di turno
+static void Stampa_PV(mago*);
 static void Pesca(mago*);
 static void Aggiungi_mano(mago*, carta*);//aggiunga alla mano di questo mago, questa carta
 static void Gioca(void);
@@ -111,7 +112,7 @@ system("clear");
   Stampa_mago(&mago1);
   Stampa_mago(&mago2);
   printf("Mazzi di %d carte\n",n );
-  
+
   impostato=1;
   partita_terminata=0;//per due partite consecutive
   return;
@@ -184,8 +185,6 @@ static void Stampa_mago(mago* m){
     default:
       printf("Il Frazzi è un bel ragazzo\n");
   }
-  if(m->PV<0)//per evitare stampe brutte
-    m->PV=0;
   printf("Punti vita: %.1f\n\n", m->PV );
   return;
 }
@@ -282,7 +281,7 @@ static carta* Crea_carta(mago* m, int pos){
     case infliggi_danno:{
       int n_nomi=7;//da cambiare all'aggiunta di nuovi nomi
       char nomi[7][40]={
-        "Brainstrom",
+        "Tempesta Cerebrale",
         "Maledizione Della Stregoneria",
         "Dipartita Dorata",
         "Fulmine",
@@ -470,6 +469,12 @@ static void Stampa_mago_turno(){
   }
 }
 
+static void Stampa_PV(mago *m){
+  if(m->PV<0)//per evitare stampe brutte
+    m->PV=0;
+  printf("Ora %s ha %.1f punti vita\n", m->nome, m->PV);
+}
+
 static void Pesca(mago* m){
   if(pescato){
     printf("Puoi pescare una sola volta per turno!\n");
@@ -501,7 +506,7 @@ static void Aggiungi_mano(mago* m, carta* c){
   for (int i = 0; i < 6; i++){
     if(m->mano[i]==NULL){//se la posizione nella mano è libera
       m->mano[i]=c;//si aggiunge alla mano
-      printf("Hai pescato una carta ");
+      printf("Hai pescato ");
       Stampa_carta(c);
       Stampa_mano(m);
       flag=0;
@@ -563,7 +568,7 @@ static void Gioca(){
           for (int i = 0; i < 4; i++){
             if(mago_di_turno->campo[i]==NULL){//la prima posizione libera nella campo
               mago_di_turno->campo[i]=carta_giocata;//si mette la creatura sul campo
-              printf("\nHai posizionato una creatura con %.1f punti vita nella posizione %d\n\n", carta_giocata->punti_vita, i);
+              printf("\nHai posizionato %s, creatura con %.1f punti vita nella posizione %d\n\n",carta_giocata->nome, carta_giocata->punti_vita, i+1);
               Stampa_campo(mago_di_turno);
               giocabile=1;
               giocato=1;
@@ -649,7 +654,8 @@ static void Gioca(){
                   danneggiata=0;
                 else{
 
-                  printf("Hai inflitto %.1f danni alla creatura con  %.1f punti vita\n",carta_giocata->punti_vita, mago_avv->campo[p_i-1]->punti_vita);
+                  printf("Hai inflitto %.1f danni a ",carta_giocata->punti_vita);
+                  Stampa_carta(mago_avv->campo[p_i-1]);
                   mago_avv->campo[p_i-1]->punti_vita=mago_avv->campo[p_i-1]->punti_vita-carta_giocata->punti_vita;
 
                   //si controlla che la creatura sia stata distrutta
@@ -670,7 +676,7 @@ static void Gioca(){
               //si picchia il mago
               mago_avv->PV=mago_avv->PV-carta_giocata->punti_vita;
               printf("Hai inflitto %.1f danni al tuo avversario\n",carta_giocata->punti_vita);
-              Stampa_mago(mago_avv);
+              Stampa_PV(mago_avv);
               giocato=1;
               //si controlla che il mago sia morto
               if(mago_avv->PV<=0){
@@ -695,7 +701,7 @@ static void Gioca(){
 
             if(bersaglio==1){
               //si controlla che ci sia almeno una creatura da curare
-              short giocabile=1;
+              short giocabile=0;
               int ctr_campo=0;
               for (int i = 0; i < 4; i++) {
                 if(mago_di_turno->campo[i]!=NULL){
@@ -720,7 +726,8 @@ static void Gioca(){
                 if(posizione<1||posizione>ctr_campo)
                   guarito=0;
                 else{
-                  printf("Hai guarito per %.1f punti vita la creatura con %.1f punti vita\n",carta_giocata->punti_vita, mago_di_turno->campo[posizione-1]->punti_vita);
+                  printf("Hai guarito per %.1f punti vita ",carta_giocata->punti_vita);
+                  Stampa_carta(mago_di_turno->campo[posizione-1]);
                   mago_di_turno->campo[posizione-1]->punti_vita=mago_di_turno->campo[posizione-1]->punti_vita+carta_giocata->punti_vita;
                   guarito=1;
                   Stampa_campo(mago_di_turno);
@@ -732,7 +739,7 @@ static void Gioca(){
               //si guarisce il mago
               mago_di_turno->PV=mago_di_turno->PV+carta_giocata->punti_vita;
               printf("Sei guarito %.1f punti vita\n",carta_giocata->punti_vita);
-              Stampa_mago(mago_di_turno);
+              Stampa_PV(mago_di_turno);
               giocato=1;
             }
             else{
@@ -839,7 +846,8 @@ static void Attacca(){
             if(pos_creatura_bersaglio<1||pos_creatura_bersaglio>ctr_campo_avv)
               scelta_creatura_attaccata=0;
             else{
-              printf("Hai inflitto %.1f danni alla creatura con  %.1f punti vita\n",carta_giocata->punti_vita, mago_avv->campo[pos_creatura_bersaglio-1]->punti_vita);
+              printf("Hai inflitto %.1f danni a ",carta_giocata->punti_vita);
+              Stampa_carta(mago_avv->campo[pos_creatura_bersaglio-1]);
               mago_avv->campo[pos_creatura_bersaglio-1]->punti_vita=mago_avv->campo[pos_creatura_bersaglio-1]->punti_vita-carta_giocata->punti_vita;
 
               attaccato=1;
@@ -867,7 +875,7 @@ static void Attacca(){
           mago_avv->PV=mago_avv->PV-carta_giocata->punti_vita;
           printf("Hai inflitto %.1f danni al tuo avversario\n",carta_giocata->punti_vita);
 
-          Stampa_mago(mago_avv);
+          Stampa_PV(mago_avv);
           attaccato=1;
           //si controlla che il mago sia morto
           if(mago_avv->PV<=0){
@@ -888,7 +896,7 @@ static void Attacca(){
 static void Sistema_campo(mago* m){
   for (int i = 0; i < 3; i++) {
     if(m->campo[i]==NULL && m->campo[i+1]!=NULL){//se c'è un buco nel campo
-      m->campo[i]=m->campo[i+1];//si fa scorrere il buco
+      m->campo[i]=m->campo[i+1];//si fa scorrere il buco fino in fondo
       m->campo[i+1]=NULL;
     }
   }
@@ -1005,22 +1013,26 @@ static int Inserisci_numero(){
 
 void Regole(){
   system("clear");
-  printf("Regole:\n");
-  printf("- I giocatori sono due maghi\n");
-  printf("- I due maghi si sfidano in un duello in cui si combatte usando delle carte\n");
-  printf("- Ogni mago inizia sempre con 5 carte in mano mentre il numero di carte dei mazzi può variare\n");
+  printf("Regole base:\n");
+  printf("- I giocatori sono due maghi che si sfidano in un duello in cui si combatte usando delle carte\n");
+  printf("- Ogni mago inizia sempre con una mano di 5 carte in aggiunta al numero di carte del mazzo\n");
+  printf("- Il numero di carte dei mazzi viene scelto nelle impostazioni del gioco\n");
+  printf("- Il numero massimo di carte nella mano è 6\n");
+  printf("- Se viene pescata una carta quando si ha 6 carte in mano, questa viene distrutta\n");
   printf("- Ogni mago inizia con 20 punti vita\n");
   printf("\n");
-  printf("- Se un mazzo finisce, la partita termina e vince il mago che a più punti vita\n");
-  printf("- Se i punti vita di un mago vengono ridotti a zero, il mago perde\n");
-  printf("\n");
-  printf("- Ci sono quattro tipi di carte:\n");
+  printf("Tipi di carte:\n");
   printf("-\e[0;31m Infliggi danno\e[0m, riduce i punti vita del bersaglio dei punti indicati\n");
   printf("-\e[0;34m Guarisci danno\e[0m, aumenta i punti vita del bersaglio dei punti indicati\n");
   printf("-\e[0;32m Creatura\e[0m, può essere posizionata sul campo e attaccare\n");
   printf("-\e[0;35m Rimuovi creatura\e[0m, elimina una creatura dal campo\n");
   printf("\n");
+  printf("Creature:\n");
   printf("- Se i punti vita di una creatura vengono ridotti a zero, la creatura viene rimossa dal campo\n");
   printf("- Non si può attaccare direttamente un mago che controlla creature\n");
+  printf("\n");
+  printf("Fine della partita:\n");
+  printf("- Se un mazzo finisce, la partita termina e vince il mago che a più punti vita\n");
+  printf("- Se i punti vita di un mago vengono ridotti a zero, il mago perde\n");
   printf("\n");
 }
