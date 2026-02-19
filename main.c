@@ -5,45 +5,49 @@
 
 int main( ) {
   //si dichiarano le varibili
-  short flag=1;//controlla inserimento 1 2 3 4
-  short flagp=0;//evita duplicazioni di stampa
+  short continua=1;//controlla inserimento 1 2 3 4
+  short stampa_info=1;//evita duplicazioni di stampa
   char scelta[256];
 
-  system("clear");
+  clear_screen();
   printf("Benvenuti in questa piana desolata\n");
   //menu di scelta
   do{
-    if(!flagp)
+    if(stampa_info)
       printf("\nCosa desiderate fare?\n1 : impostare il gioco\n2 : combattere!\n3 : visualizzare le regole\n4 : terminare il gioco\n\n");
-    fgets(scelta, 256, stdin);
+
+    if(fgets(scelta, sizeof(scelta), stdin)==NULL){
+      perror("errore di sistema\n");
+      return -1;
+    }
 
     if(strlen(scelta)>1){
-      flagp=0;
+      stampa_info=1;
       //si controlla che in input sia stato inserito un solo carattere
       if(scelta[1]!=10){
         printf("Inserire solo 1, 2, 3 o 4\n");
-        flag=1;
+        continua=1;
         continue;
       }
       switch(scelta[0]){
-        case 49:
+        case '1':
           Imposta_gioco();
           break;
-        case 50:
-            Combatti();
+        case '2':
+          Combatti();
           break;
-        case 51:
-            Regole();
+        case '3':
+          Regole();
           break;
-        case 52:
+        case '4':
           Termina_gioco();
-          flag=0;
+          continua=0;
           break;
         default:
           printf("inserire solo 1, 2, 3 o 4\n");
       }
     }
     else
-      flagp=1;
-  }while(flag);
+      stampa_info=0;
+  }while(continua);
 }

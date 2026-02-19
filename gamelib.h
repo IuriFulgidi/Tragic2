@@ -3,6 +3,8 @@ void Combatti();
 void Regole();
 void Termina_gioco();
 
+void clear_screen();
+
 enum classe_mago {tenebre, vita, luce};
 
 enum tipo_carta {creatura, rimuovi_creatura, infliggi_danno, guarisci_danno};

@@ -20,6 +20,7 @@ static short pescato=0;
 
 //dichiarazione funzioni
 //per Imposa_gioco
+static void Stampa_stat(mago*);
 static void Crea_mago(mago*);
 static void Stampa_mago(mago*);
 static carta* Crea_carta(mago*, int);
@@ -47,7 +48,7 @@ static void Dealloca_campo(mago*);
 static int Inserisci_numero(void);//per controllora inserimenti strani alla richiesta di un numero
 
 void Imposta_gioco(){
-system("clear");
+clear_screen();
 
   //se il giocco è stato già impostato si llbera la memoria precedente
   if(impostato)
@@ -65,7 +66,10 @@ system("clear");
   do {
     char tmp[256];//stringa di controllo
     printf("Inserire il numero di carte dei mazzi, tra 0 e 80, non compresi\n");
-    fgets(tmp, 256, stdin);
+    if(fgets(tmp, sizeof(tmp), stdin)==NULL){
+      perror("errore di sistema\n");
+      return;
+    }
     if(strlen(tmp)>1){//per evitare doppie stampe
       flag_tmp=0;
       if(strlen(tmp)>3){  //si controlla che in input sia stato inserito solo 1 o 2 caratteri
@@ -73,17 +77,17 @@ system("clear");
         continue;
       }
       if(strlen(tmp)==2){//se è stata inserita una stringa con un carattere
-        if(tmp[0]>48 && tmp[0]<58){//si controlla che sia un numero
-          n=((int)tmp[0])-48;
+        if(tmp[0]>'0' && tmp[0]<='9'){//si controlla che sia un numero
+          n=((int)tmp[0])-'0';
           flag_tmp=0;
         }
         else
           flag_tmp=1;
       }
       else{// se è stato inserito una stringa con due caratteri
-        if(tmp[0]>47 && tmp[0]<56 && tmp[1]>47 && tmp[1]<58){//si controlla che la cifra delle decine sia tra 0 e 7, e che quella delle unità sia un numero
-          int decine = (((int)tmp[0])-48)*10;
-          int unita = ((int)tmp[1])-48;
+        if(tmp[0]>='0' && tmp[0]<'8' && tmp[1]>='0' && tmp[1]<='9'){//si controlla che la cifra delle decine sia tra 0 e 7, e che quella delle unità sia un numero
+          int decine = (((int)tmp[0])-'0')*10;
+          int unita = ((int)tmp[1])-'0';
           n= decine+unita;
           flag_tmp=0;
         }
@@ -107,15 +111,66 @@ system("clear");
   Crea_campo(&mago2);
 
   //riepilogo delle informazioni impostate
-  system("clear");
+  clear_screen();
   printf("Gioco impostato!\n\n");
   Stampa_mago(&mago1);
   Stampa_mago(&mago2);
   printf("Mazzi di %d carte\n",n );
 
+  int stampa_mazzo;
+  short ctr_stmp_mazzo=0;
+  do{
+    printf("Voi stampare le statistiche dei mazzi?\n1: Si\n2: No\n");
+    stampa_mazzo=Inserisci_numero();
+
+    if(stampa_mazzo==1){
+      Stampa_stat(&mago1);
+      Stampa_stat(&mago2);
+      ctr_stmp_mazzo=0;
+    }
+    else if(stampa_mazzo!=2)
+      ctr_stmp_mazzo=1;
+  }while(ctr_stmp_mazzo);
+
   impostato=1;
   partita_terminata=0;//per due partite consecutive
   return;
+}
+
+static void Stampa_stat(mago* m){
+  int ctr_cre=0;
+  int ctr_rim=0;
+  int ctr_inf=0;
+  int ctr_gua=0;
+
+  //si scorre il mazzo
+  carta* prima = m->inizio_mazzo;
+  if(prima == NULL)//Nel caso di lista vuota
+    return;
+  carta* tmp = prima;
+  do{
+    switch (tmp->tipo) {
+      case creatura:
+        ctr_cre++;
+        break;
+      case rimuovi_creatura:
+        ctr_rim++;
+        break;
+      case infliggi_danno:
+        ctr_inf++;
+        break;
+      case guarisci_danno:
+        ctr_gua++;
+        break;
+      default:
+        printf("Houston, abbiamo un problema\n");
+    }
+    tmp = tmp->next;//si passa alla successiva
+  }while(tmp!= NULL);//finché non finisce la lista
+
+  printf("Il mazzo di %s contiene:\n", m->nome);
+  printf("%d creature\n%d rimuovi creatura\n%d infilggi danno\n%d guarisci danno\n\n",ctr_cre, ctr_rim, ctr_inf, ctr_gua );
+
 }
 
 static void Crea_mago(mago* m){
@@ -129,7 +184,10 @@ static void Crea_mago(mago* m){
   else
     printf("Inserire il nome del secondo mago\n");
 
-  fgets(m->nome, 64, stdin);
+  if(fgets(m->nome, sizeof(m->nome), stdin)==NULL){
+    perror("errore di sistema\n");
+    return;
+  }
   m->nome[strlen(m->nome)-1]='\0';//evita ritorni a capo indesiderati
 
   if(ctr_m%2==0)
@@ -143,8 +201,12 @@ static void Crea_mago(mago* m){
 
   do {
     printf("Scegliere tra 'tenebre', 'vita' o 'luce'\n");
-    fgets(classe, 256, stdin);
-    for (int i = 0; i < strlen(classe); i++){
+    if(fgets(classe, sizeof(classe), stdin)==NULL){
+      perror("errore di sistema\n");
+      return;
+    }
+    int classe_length = strlen(classe);
+    for (int i = 0; i < classe_length; i++){
       classe [i]=tolower(classe[i]);
     }
     if (classe[0]=='t' && classe[1]=='e' && classe[2]=='n' && classe[3]=='e' && classe[4]=='b' && classe[5]=='r' && classe[6]=='e' && strlen(classe)==8){
@@ -395,8 +457,8 @@ void Combatti(){
   giocato=0;
   attaccato=0;
 
-  short flagp=0;//evita duplicazioni di stampa
-  system("clear");
+  short stampa_info=1;//evita duplicazioni di stampa
+  clear_screen();
   if(!impostato){
     printf("Il gioco deve essere impostato almeno una volta!\n");
     return;
@@ -413,13 +475,16 @@ void Combatti(){
 
   Stampa_mago_turno();
   do{
-    if(!flagp)
-      printf("\nCosa desideri fare?\n1 : pescare una carta\n2 : giocare una carta\n3 : attaccare\n4 : stampare la tua mano\n5 : stampare il campo\n6 : passare il turno\n\n");
-    fgets(scelta, 256, stdin);
+      if(stampa_info)
+        printf("\nCosa desideri fare?\n1 : pescare una carta\n2 : giocare una carta\n3 : attaccare\n4 : stampare la tua mano\n5 : stampare il campo\n6 : passare il turno\n\n");
+      if(fgets(scelta, sizeof(scelta), stdin)==NULL){
+        perror("errore di sistema\n");
+        return;
+      }
 
     //si controlla che in input sia stato inserito un solo carattere
     if(strlen(scelta)>1){
-      flagp=0;
+      stampa_info=1;
       if(scelta[1]!=10){
         printf("Inserire solo 1, 2, 3, 4, 5 o 6\n");
         continue;
@@ -449,7 +514,7 @@ void Combatti(){
       }
     }
     else
-      flagp=1;
+      stampa_info=0;
   }while(!partita_terminata);
 }
 
@@ -935,7 +1000,7 @@ static void Termina_partita(){
 
 void Termina_gioco(){
   Dealloca();
-  system("clear");
+  clear_screen();
   printf("Il gioco è terminato, attenderò in questa piana ventosa per il prossimo duello\n");
 }
 
@@ -994,13 +1059,16 @@ static void Dealloca_mazzo(mago* m) {
 
 static int Inserisci_numero(){
   do{
-    char tmp[256];//varaibile stringa di supporto
-    fgets(tmp, 256, stdin);
+    char tmp[256];//stringa di supporto
+    if(fgets(tmp, sizeof(tmp), stdin)==NULL){
+      perror("errore di sistema\n");
+      return -1;
+    }
 
     if(strlen(tmp)>1){//per evitare doppie stampe
       if(strlen(tmp)==2){//si controlla che in input sia stato inserito un solo carattere
-        if(tmp[0]>48 && tmp[0]<58){//si controlla che il carattere sia una cifra maggiore di 0
-          return((int)tmp[0])-48;
+        if(tmp[0]>'0' && tmp[0]<='9'){//si controlla che il carattere sia una cifra maggiore di 0
+          return((int)tmp[0])-'0';
         }
         else
           printf("inserire un numero\n");
@@ -1012,7 +1080,7 @@ static int Inserisci_numero(){
 }
 
 void Regole(){
-  system("clear");
+  clear_screen();
   printf("Regole base:\n");
   printf("- I giocatori sono due maghi che si sfidano in un duello in cui si combatte usando delle carte\n");
   printf("- Ogni mago inizia sempre con una mano di 5 carte in aggiunta al numero di carte del mazzo\n");
